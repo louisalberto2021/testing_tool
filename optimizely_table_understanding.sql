@@ -121,8 +121,83 @@ FROM PUBLIC.JOB_FLOW_EVENTS
 ) WHERE "created_at" >= '2021-03-16'
 ;
 
-SELECT top 5 * FROM PUBLIC.OPTIMIZELY_ENR_CONV 
+--CREATE TEMP TABLE 
+SELECT COUNT(DISTINCT GUID)
+FROM PUBLIC.OPTIMIZELY_ENR_CONV 
+--FROM PUBLIC.OPTIMIZELY_ENR_DECI 
+WHERE EXPERIMENT_ID LIKE '%20053754433%' AND VARIATION_ID  LIKE '%20041984016%'
+AND ENVIRONMENT ='production'
+--AND CREATED_AT <='2021-04-20'
+;
+
+SELECT COUNT(DISTINCT GUID)
+FROM PUBLIC.REACT_NATIVE_EVENTS 
+--WHERE EXPERIMENT_ID LIKE '%20053754433%' AND VARIATION_ID  LIKE '%20041984016%'
+WHERE TRUE 
+AND CREATED_AT BETWEEN '2021-03-16' AND '2021-04-20'
+;
+
+SELECT COUNT(DISTINCT GUID)
+FROM PUBLIC.JOB_FLOW_EVENTS 
+--WHERE EXPERIMENT_ID LIKE '%20053754433%' AND VARIATION_ID  LIKE '%20041984016%'
+WHERE TRUE 
+AND CREATED_AT BETWEEN '2021-03-16' AND '2021-04-20'
+AND GUID IN 
+(
+	SELECT DISTINCT GUID FROM PUBLIC.OPTIMIZELY_ENR_DECI  WHERE EXPERIMENT_ID='20053754433' AND VARIATION_ID = '20041984016' AND ENVIRONMENT = 'production'
+)
+--AND CLIENT_PUBLISH_TYPE = 'invitationSent'
 ;
 
 
-SELECT dis
+SELECT "platform",COUNT(*) FROM (
+SELECT DISTINCT GUID AS "guid",CLIENT_PUBLISH_TYPE AS "client_publish_type",CREATED_AT AS "created_at",'web' AS "platform"
+FROM PUBLIC.JOB_FLOW_EVENTS
+UNION
+SELECT DISTINCT GUID AS "guid",CLIENT_PUBLISH_TYPE AS "client_publish_type",CREATED_AT AS "created_at",'native' AS "platform"
+FROM PUBLIC.REACT_NATIVE_EVENTS
+) WHERE "created_at" >= '2021-03-16'
+GROUP BY 1
+;
+
+SELECT DISTINCT EVENT_NAME FROM PUBLIC.OPTIMIZELY_DECORATED_INVOICE_SUBMITTED 
+;
+
+SELECT	DISTINCT posters.GUID AS "posters.guid",
+		'decorated_invoice_submitted' AS "event",
+    		job_invoices.SUBMITTED_STATE_AT AS "submitted_state_date",
+    		client_applications.APPLICATION AS "application"
+--;SELECT COUNT(*),COUNT(DISTINCT job_invoices.id)
+FROM		JOBS AS jobs
+		INNER JOIN JOB_INVOICES AS job_invoices ON jobs.ID = job_invoices.JOB_ID
+		LEFT JOIN USERS AS posters ON jobs.POSTER_ID = posters.ID
+		LEFT JOIN CLIENT_APPLICATIONS AS client_applications ON jobs.CREATED_CLIENT_APPLICATION_ID = client_applications.ID
+WHERE 	(NOT (jobs.poster_rabbit_relationship_id::boolean) OR (jobs.poster_rabbit_relationship_id::boolean) IS NULL) 
+		AND (jobs.V2_ID IS NULL)
+		AND ((NOT (jobs.suppress_level >= 1000 ) OR (jobs.suppress_level >= 1000 ) IS NULL) AND (( jobs.FIXUP_KEY  IS NULL))) 
+		AND ((NOT (posters.real_user_id is not null ) OR (posters.real_user_id is not null ) IS NULL) AND (NOT (posters.admin::boolean ) OR (posters.admin::boolean ) IS NULL) AND ((NOT (posters.internal::boolean ) OR (posters.internal::boolean ) IS NULL) AND (NOT (posters.suppress_level >= 1000 ) OR (posters.suppress_level >= 1000 ) IS NULL)))
+--AND JOB_INVOICES.SUBMITTED_STATE_AT >='2021-03-16'
+;
+--GROUP BY 1
+ORDER BY 2 DESC
+FETCH NEXT 5 ROWS ONLY
+;
+
+SELECT
+    posters.GUID AS "posters.guid",
+    ,job_invoices.SUBMITTED_STATE_AT) AS "job_invoices.submitted_state_date"
+FROM
+    JOBS AS jobs
+    LEFT JOIN JOB_INVOICES AS job_invoices ON jobs.ID = job_invoices.JOB_ID
+    LEFT JOIN USERS AS posters ON jobs.POSTER_ID = posters.ID
+WHERE 	(NOT (jobs.poster_rabbit_relationship_id::boolean) OR (jobs.poster_rabbit_relationship_id::boolean) IS NULL) 
+		AND (jobs.V2_ID IS NULL)
+		AND ((NOT (jobs.suppress_level >= 1000 ) OR (jobs.suppress_level >= 1000 ) IS NULL) AND (( jobs.FIXUP_KEY  IS NULL))) 
+		AND ((NOT (posters.real_user_id is not null ) OR (posters.real_user_id is not null ) IS NULL) AND (NOT (posters.admin::boolean ) OR (posters.admin::boolean ) IS NULL) AND ((NOT (posters.internal::boolean ) OR (posters.internal::boolean ) IS NULL) AND (NOT (posters.suppress_level >= 1000 ) OR (posters.suppress_level >= 1000 ) IS NULL)))
+GROUP BY
+    (TO_DATE(job_invoices.SUBMITTED_STATE_AT)),
+    1
+ORDER BY
+    2 DESC
+FETCH NEXT 5 ROWS ONLY
+;
